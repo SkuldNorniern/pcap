@@ -137,7 +137,7 @@ impl Error {
 }
 
 impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             MalformedError(ref e) => write!(f, "libpcap returned invalid UTF-8: {}", e),
             InvalidString => write!(f, "libpcap returned a null string"),
@@ -686,7 +686,7 @@ pub struct PacketHeader {
 }
 
 impl fmt::Debug for PacketHeader {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "PacketHeader {{ ts: {}.{:06}, caplen: {}, len: {} }}",
@@ -1233,7 +1233,7 @@ impl<T: Activated + ?Sized> Capture<T> {
     /// This buffer has a finite length, so if the buffer fills completely new
     /// packets will be discarded temporarily. This means that in realtime situations,
     /// you probably want to minimize the time between calls to next_packet() method.
-    pub fn next_packet(&mut self) -> Result<Packet, Error> {
+    pub fn next_packet(&mut self) -> Result<Packet<'_>, Error> {
         unsafe {
             let mut header: *mut raw::pcap_pkthdr = ptr::null_mut();
             let mut packet: *const libc::c_uchar = ptr::null();
@@ -1447,7 +1447,7 @@ unsafe impl Send for Savefile {}
 
 impl Savefile {
     /// Write a packet to a capture file
-    pub fn write(&mut self, packet: &Packet) {
+    pub fn write(&mut self, packet: &Packet<'_>) {
         unsafe {
             raw::pcap_dump(
                 self.handle.as_ptr() as _,
@@ -1486,7 +1486,7 @@ impl Drop for Savefile {
 ///
 /// Unsafe, because the returned FILE assumes it is the sole owner of the file descriptor.
 pub unsafe fn open_raw_fd(fd: RawFd, mode: u8) -> Result<*mut libc::FILE, Error> {
-    let mode = vec![mode, 0];
+    let mode = [mode, 0];
     libc::fdopen(fd, mode.as_ptr() as _)
         .as_mut()
         .map(|f| f as _)
